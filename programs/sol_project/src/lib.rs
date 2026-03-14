@@ -18,6 +18,28 @@ pub mod sol_project {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         initialize::handler(ctx)
     }
+
+    pub fn deposit_collatral(ctx : Context<DepositCollateral>, amount: u64) -> Result<()> {
+
+        let user_position = &mut ctx.accounts.user_position;
+
+        user_position.collateral_amount += amount;
+
+        let cpi_accounts = Transfer {
+            from ctx.accounts.user_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.user.to_account_info()
+        };
+
+        let cpi_program= ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_program);
+        
+        token::transfer(cpi_ctx,amount)?;
+
+        msg!("Deposited {}g of gold. New collateral; {}", amount,user_position.collateral_amount);
+        Ok(());
+    }
+
 }
 
 pub fn initialize_market(
@@ -43,4 +65,18 @@ pub struct Initialize_market<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct DepositCollateral<'info> {
+    #[account(mut)]
+    pub user_position: Account<'info, UserPosition>,
+
+    #[account(mut)]
+    pub user_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_token_account: Account<'info, TokenAccount>,
+
+    pub user: Signer<'info>,
+    pub token_program: Program<'info, Token>
 }
