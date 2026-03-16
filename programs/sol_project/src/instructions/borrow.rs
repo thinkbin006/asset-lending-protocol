@@ -1,5 +1,5 @@
-use anchor_lang:prelude::*;
-use anchor_spl::token{self, Transfer, Token, TokenAccount};
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 
 pub fn handler(ctx: Context<Borrow>, amount: u64) -> Result<()> {
@@ -39,7 +39,7 @@ pub fn handler(ctx: Context<Borrow>, amount: u64) -> Result<()> {
     let seeds=&[
         b"vault".as_ref(),
         &[ctx.bumps.market],
-    ]
+    ];
 
     let signer = &[&seeds[..]];
     token::transfer(
