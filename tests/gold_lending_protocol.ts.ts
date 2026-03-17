@@ -156,13 +156,12 @@ describe("gold_lending_protocol", () => {
     });
 
     it("Alice borrows 500 USDC!", async () => {
-    // We assume Alice already has a userPosition from the previous test.
-    // In a real test, you might need to find the PDA or pass the keypair.
+    
     const borrowAmount = new anchor.BN(500 * 10 ** 6); 
     await program.methods
         .borrowCash(borrowAmount)
         .accounts({
-            userPosition: userPosition.publicKey, // The account we created in Deposit
+            userPosition: userPosition.publicKey, 
             market: market.publicKey,
             vaultAuthority: vaultAuthority,
             vaultCashAccount: vaultCashAccount,
@@ -172,16 +171,78 @@ describe("gold_lending_protocol", () => {
             tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
-    // Verify the math
+
     const position = await program.account.userPosition.fetch(userPosition.publicKey);
     console.log("Alice's Debt:", position.borrowAmount.toString());
     
     expect(position.borrowAmount.toNumber()).to.equal(borrowAmount.toNumber());
 
-    // Verify Alice actually received the tokens
     const aliceBalance = await provider.connection.getTokenAccountBalance(aliceCashAccount);
     expect(Number(aliceBalance.value.amount)).to.equal(500 * 10 ** 6);
   });
+
+  it("Bob liquidates Alice!", async () => {
+    // 1. Setup Bob (The Liquidator)
+    const bob = anchor.web3.Keypair.generate();
+    
+    // Airdrop SOL to Bob so he can pay transaction fees
+    const signature = await provider.connection.requestAirdrop(bob.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction(signature);
+
+    // 2. Give Bob enough Cash (USDC) to repay Alice's 500 USDC debt
+    const bobCashAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        (admin as any).payer,
+        cashMint,
+        bob.publicKey
+    );
+    
+    await mintTo(
+        provider.connection,
+        (admin as any).payer,
+        cashMint,
+        bobCashAccount.address,
+        admin.publicKey,
+        600 * 10 ** 6 // Give him 600 to be safe
+    );
+
+    // 3. Create Bob's Gold wallet to receive the seized collateral
+    const bobGoldAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        (admin as any).payer,
+        goldMint,
+        bob.publicKey
+    );
+
+    // 4. Run the Liquidation
+    // Note: If your Rust code currently has a 75% LTV, 
+    // we might need to "fake" a price drop or use a high repay amount.
+    const repayAmount = new anchor.BN(500 * 10 ** 6); 
+
+    await program.methods
+        .liquidate(repayAmount)
+        .accounts({
+            userPosition: userPosition.publicKey,
+            market: market.publicKey,
+            liquidator: bob.publicKey,
+            liquidatorCashAccount: bobCashAccount.address,
+            liquidatorGoldAccount: bobGoldAccount.address,
+            vaultCashAccount: vaultCashAccount,
+            vaultGoldAccount: vaultGoldAccount, // The Gold vault we created in the first test
+            vaultAuthority: vaultAuthority,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([bob]) // Bob must sign to authorize his USDC being spent
+        .rpc();
+
+    // 5. Verify Bob got the Gold and Alice's debt is cleared
+    const position = await program.account.userPosition.fetch(userPosition.publicKey);
+    expect(position.borrowAmount.toNumber()).to.equal(0);
+    
+    const bobGoldBalance = await provider.connection.getTokenAccountBalance(bobGoldAccount.address);
+    console.log("Bob seized collateral! New Gold Balance:", bobGoldBalance.value.uiAmount);
+  });
+
 });
 
 

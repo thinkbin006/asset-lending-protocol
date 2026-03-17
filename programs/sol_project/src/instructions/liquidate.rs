@@ -31,7 +31,7 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
     let cpi_reward = Transfer {
         from: ctx.accounts.vault_gold_account.to_account_info(),
         to: ctx.accounts.liquidator_gold_account.to_account_info(),
-        authority: ctx.accounts.market.to_account_info(),
+        authority: ctx.accounts.vault_authority.to_account_info(),
     };
     
     token::transfer(
@@ -49,11 +49,13 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
     pub market: Account<'info, Market>,
+    /// CHECK: This is a PDA used as a signing authority for the vault. 
+    /// Its safety is guaranteed by the seeds and bump constraints.
     #[account(
         seeds = [b"vault", market.key().as_ref()], 
         bump
     )]
-    pub vault_authority: Account<'info, TokenAccount>,
+    pub vault_authority: AccountInfo<'info>,
     #[account(mut)]
     pub user_position: Account<'info, UserPosition>,
     #[account(mut)]
