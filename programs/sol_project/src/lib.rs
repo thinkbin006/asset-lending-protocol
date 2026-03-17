@@ -6,9 +6,11 @@ pub mod state;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
+
+
 pub use constants::*;
-pub use instructions::*;
 pub use state::*;
+use crate::instructions::*;
 
 declare_id!("DBi9Wids5DqV4QJtRyz3ib3YYNMJZUwCw82Ybh1dhxed");
 
@@ -40,6 +42,8 @@ pub mod sol_project {
 
         let user_position = &mut ctx.accounts.user_position;
 
+        user_position.owner = ctx.accounts.user.key();
+
         user_position.collateral_amount += amount;
 
         let cpi_accounts = Transfer {
@@ -57,6 +61,14 @@ pub mod sol_project {
         Ok(())
     }
 
+    pub fn borrow_cash(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
+        instructions::borrow_cash::borrow_handler(ctx, amount)
+        
+    }
+    pub fn liquidate(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
+        instructions::liquidate::liquidation_handler(ctx, repay_amount)
+    }
+
 }
 
 
@@ -72,7 +84,11 @@ pub struct InitializeMarket<'info> {
 
 #[derive(Accounts)]
 pub struct DepositCollateral<'info> {
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = 8 + UserPosition::LEN,
+    )]
     pub user_position: Account<'info, UserPosition>,
 
     #[account(mut)]
@@ -80,6 +96,8 @@ pub struct DepositCollateral<'info> {
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
+    #[account(mut)]
     pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>
 }

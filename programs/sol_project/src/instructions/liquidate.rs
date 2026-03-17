@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
-use crate::errors::LendingError;
+use crate::error::LendingError;
 
-pub fn handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
+pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
     let user_position= &mut ctx.accounts.user_position;
 
-    let gold_price = 2000_00000000;
+    let gold_price: i64 = 2000_00000000;
     let collateral_value =(user_position.collateral_amount as u128)*(gold_price as u128);
     let liquidation_threshold=8000;
 
@@ -25,7 +25,7 @@ pub fn handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
     let gold_to_transfer = (repay_amount as u128 * 11000 / 10000) / (gold_price as u128);
 
 
-    let seeds = &[b"vault".as_ref(), &[ctx.bumps.market]];
+    let seeds = &[b"vault".as_ref(), &[ctx.bumps.vault_authority]];
     let signer = &[&seeds[..]];
 
     let cpi_reward = Transfer {
@@ -49,6 +49,11 @@ pub fn handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
     pub market: Account<'info, Market>,
+    #[account(
+        seeds = [b"vault", market.key().as_ref()], 
+        bump
+    )]
+    pub vault_authority: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user_position: Account<'info, UserPosition>,
     #[account(mut)]

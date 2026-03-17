@@ -1,43 +1,187 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SolProject } from "../target/types/sol_project";
-import { expect } from "chai";
+import { expect, use } from "chai";
 
+import { 
+  createMint, 
+  getOrCreateAssociatedTokenAccount, 
+  mintTo,
+  TOKEN_PROGRAM_ID 
+} from "@solana/spl-token";
 describe("gold_lending_protocol", () => {
-  // 1. Setup the connection to the local cluster
+
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
   const program = anchor.workspace.SolProject as Program<SolProject>;
 
-  // 2. Define the "Accounts" (The Bank and the User)
+  let goldMint: anchor.web3.PublicKey;
+  let aliceGoldAccount: anchor.web3.PublicKey;
+  let vaultGoldAccount: anchor.web3.PublicKey;
+  let cashMint: anchor.web3.PublicKey;
+  let aliceCashAccount: anchor.web3.PublicKey;
+  let vaultCashAccount: anchor.web3.PublicKey;
+  let userPosition = anchor.web3.Keypair.generate();
+
+  
+
   const market = anchor.web3.Keypair.generate();
   const admin = provider.wallet;
 
-  it("Initializes the Market!", async () => {
-    // 3. Define our Finance Parameters
-    const baseRate = new anchor.BN(200); // 2%
-    const optimalUtil = new anchor.BN(8000); // 80%
+  const [vaultAuthority] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("vault"),
+      market.publicKey.toBuffer()
+    ], // Make sure this matches your Rust seeds exactly!
+    program.programId
+  );
 
-    // 4. Call the 'initialize_market' function in our Rust code
+  // --- NEW SETUP BLOCK ---
+  it("Sets up Gold Token and Accounts", async () => {
+    // 1. Create the Gold Token (Mint)
+    goldMint = await createMint(
+      provider.connection,
+      (admin as any).payer,
+      admin.publicKey,
+      null,
+      9 // 9 decimals
+    );
+
+    // 2. Create Alice's gold wallet and give her 100 Gold
+    const aliceAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (admin as any).payer,
+      goldMint,
+      admin.publicKey // Admin is acting as Alice for this test
+    );
+    aliceGoldAccount = aliceAccount.address;
+
+    await mintTo(
+      provider.connection,
+      (admin as any).payer,
+      goldMint,
+      aliceGoldAccount,
+      admin.publicKey,
+      100 * 10 ** 9
+    );
+
+    // 3. Create the Vault's gold wallet (Owned by the Market)
+    const vaultAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (admin as any).payer,
+      goldMint,
+      market.publicKey,
+      true // allowOwnerOffCurve: true because 'market' is a Keypair, not a PDA yet
+    );
+    vaultGoldAccount = vaultAccount.address;
+
+    console.log("Token Setup Complete.");
+  });
+
+  it("Initializes the Market!", async () => {
+    const baseRate = new anchor.BN(200);
+    const optimalUtil = new anchor.BN(8000);
+
     await program.methods
       .initializeMarket(baseRate, optimalUtil)
-      .accounts({
+      .accounts({ 
         market: market.publicKey,
         admin: admin.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([market]) // The market account needs to sign because it's being initialized
+      .signers([market]) 
       .rpc();
     
-    // 5. Fetch the account back from the blockchain to verify
     const marketAccount = await program.account.market.fetch(market.publicKey);
-
-    console.log("Admin Pubkey:", marketAccount.admin.toBase58());
-    console.log("Base Rate:", marketAccount.baseRate.toString());
-
-    // 6. Assertions (The "Audit")
     expect(marketAccount.baseRate.toNumber()).to.equal(200);
-    expect(marketAccount.admin.toBase58()).to.equal(admin.publicKey.toBase58());
+  });
+
+  it("Alice deposits 10 gold!", async () => {
+    const depositAmount = new anchor.BN(10 * 10 ** 9); 
+
+      await program.methods
+        .depositCollateral(depositAmount)
+        .accounts({
+          userPosition: userPosition.publicKey,
+          userTokenAccount: aliceGoldAccount,
+          vaultTokenAccount: vaultGoldAccount,
+          user: admin.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([userPosition]) 
+        .rpc();
+
+      const position = await program.account.userPosition.fetch(userPosition.publicKey);
+      console.log("Alice's Collateral Balance:", position.collateralAmount.toString());
+      
+      expect(position.collateralAmount.toNumber()).to.equal(depositAmount.toNumber());
+    });
+
+    it("Sets up Cash (USDC) and Funds the Vault", async() => {
+        cashMint = await createMint(
+          provider.connection,
+          (admin as any).payer,
+          admin.publicKey,
+          null,
+          6
+        );
+
+        const aliceAccount = await getOrCreateAssociatedTokenAccount(
+          provider.connection,
+          (admin as any).payer,
+          cashMint,
+          admin.publicKey,
+        );
+        aliceCashAccount= aliceAccount.address;
+
+        
+
+        const vaultAccount= await getOrCreateAssociatedTokenAccount(
+          provider.connection,
+          (admin as any).payer,
+          cashMint,
+          vaultAuthority,
+          true,
+        );
+        vaultCashAccount = vaultAccount.address;
+
+        await mintTo(
+        provider.connection,
+        (admin as any).payer,
+        cashMint,
+        vaultCashAccount,
+        admin.publicKey,
+        1000000 * 10 ** 6
+      );
+    });
+
+    it("Alice borrows 500 USDC!", async () => {
+    // We assume Alice already has a userPosition from the previous test.
+    // In a real test, you might need to find the PDA or pass the keypair.
+    const borrowAmount = new anchor.BN(500 * 10 ** 6); 
+    await program.methods
+        .borrowCash(borrowAmount)
+        .accounts({
+            userPosition: userPosition.publicKey, // The account we created in Deposit
+            market: market.publicKey,
+            vaultAuthority: vaultAuthority,
+            vaultCashAccount: vaultCashAccount,
+            userCashAccount: aliceCashAccount,
+            userPosition: userPosition.publicKey, 
+            owner: admin.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+    // Verify the math
+    const position = await program.account.userPosition.fetch(userPosition.publicKey);
+    console.log("Alice's Debt:", position.borrowAmount.toString());
+    
+    expect(position.borrowAmount.toNumber()).to.equal(borrowAmount.toNumber());
+
+    // Verify Alice actually received the tokens
+    const aliceBalance = await provider.connection.getTokenAccountBalance(aliceCashAccount);
+    expect(Number(aliceBalance.value.amount)).to.equal(500 * 10 ** 6);
   });
 });
+
+

@@ -23,11 +23,12 @@ impl Market {
 #[account]
 pub struct UserPosition {
     pub owner: Pubkey,
+    pub market: Pubkey,
     pub collateral_amount: u64,
     pub borrow_amount: u64,
     pub health_factor: u64,
 }
 
 impl UserPosition {
-    pub const LEN: usize =64;
+    pub const LEN: usize = 96;
 }
