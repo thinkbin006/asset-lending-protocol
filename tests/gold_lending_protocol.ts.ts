@@ -25,18 +25,18 @@ describe("gold_lending_protocol", () => {
   let userPosition = anchor.web3.Keypair.generate();
 
   
-
+  
   const market = anchor.web3.Keypair.generate();
   const admin = provider.wallet;
 
-  const [vaultAuthority] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [vaultAuthority, bump] = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("vault"),
       market.publicKey.toBuffer()
     ], // Make sure this matches your Rust seeds exactly!
     program.programId
   );
-
+  
   // --- NEW SETUP BLOCK ---
   it("Sets up Gold Token and Accounts", async () => {
     // 1. Create the Gold Token (Mint)
@@ -71,7 +71,7 @@ describe("gold_lending_protocol", () => {
       provider.connection,
       (admin as any).payer,
       goldMint,
-      market.publicKey,
+      vaultAuthority,
       true // allowOwnerOffCurve: true because 'market' is a Keypair, not a PDA yet
     );
     vaultGoldAccount = vaultAccount.address;
@@ -182,14 +182,12 @@ describe("gold_lending_protocol", () => {
   });
 
   it("Bob liquidates Alice!", async () => {
-    // 1. Setup Bob (The Liquidator)
+
     const bob = anchor.web3.Keypair.generate();
     
-    // Airdrop SOL to Bob so he can pay transaction fees
     const signature = await provider.connection.requestAirdrop(bob.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL);
     await provider.connection.confirmTransaction(signature);
 
-    // 2. Give Bob enough Cash (USDC) to repay Alice's 500 USDC debt
     const bobCashAccount = await getOrCreateAssociatedTokenAccount(
         provider.connection,
         (admin as any).payer,
@@ -203,10 +201,9 @@ describe("gold_lending_protocol", () => {
         cashMint,
         bobCashAccount.address,
         admin.publicKey,
-        600 * 10 ** 6 // Give him 600 to be safe
+        600 * 10 ** 6 
     );
 
-    // 3. Create Bob's Gold wallet to receive the seized collateral
     const bobGoldAccount = await getOrCreateAssociatedTokenAccount(
         provider.connection,
         (admin as any).payer,
@@ -214,9 +211,6 @@ describe("gold_lending_protocol", () => {
         bob.publicKey
     );
 
-    // 4. Run the Liquidation
-    // Note: If your Rust code currently has a 75% LTV, 
-    // we might need to "fake" a price drop or use a high repay amount.
     const repayAmount = new anchor.BN(500 * 10 ** 6); 
 
     await program.methods
@@ -228,14 +222,13 @@ describe("gold_lending_protocol", () => {
             liquidatorCashAccount: bobCashAccount.address,
             liquidatorGoldAccount: bobGoldAccount.address,
             vaultCashAccount: vaultCashAccount,
-            vaultGoldAccount: vaultGoldAccount, // The Gold vault we created in the first test
+            vaultGoldAccount: vaultGoldAccount,
             vaultAuthority: vaultAuthority,
             tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([bob]) // Bob must sign to authorize his USDC being spent
+        .signers([bob]) 
         .rpc();
 
-    // 5. Verify Bob got the Gold and Alice's debt is cleared
     const position = await program.account.userPosition.fetch(userPosition.publicKey);
     expect(position.borrowAmount.toNumber()).to.equal(0);
     
@@ -243,6 +236,31 @@ describe("gold_lending_protocol", () => {
     console.log("Bob seized collateral! New Gold Balance:", bobGoldBalance.value.uiAmount);
   });
 
+  it("Alice withdraws her gold after staying debt-free", async () => {
+
+    const positionBefore = await program.account.userPosition.fetch(userPosition.publicKey);
+    console.log("Current Debt:", positionBefore.borrowAmount.toString());
+
+    const withdrawAmount = new anchor.BN(5 * 10 ** 9);
+
+    await program.methods
+        .withdrawlCollateral(withdrawAmount)
+        .accounts({
+            userPosition: userPosition.publicKey,
+            market: market.publicKey,
+            vaultTokenAccount: vaultGoldAccount, 
+            userTokenAccount: aliceGoldAccount,   
+            vaultAuthority: vaultAuthority,
+            owner: admin.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+    const positionAfter = await program.account.userPosition.fetch(userPosition.publicKey);
+    expect(positionAfter.collateralAmount.toNumber()).to.equal(4999999890);
+    
+    console.log("Withdrawal successful! Alice reclaimed 5g of Gold.");
+  });
 });
 
 

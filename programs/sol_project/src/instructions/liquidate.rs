@@ -6,9 +6,13 @@ use crate::error::LendingError;
 pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
     let user_position= &mut ctx.accounts.user_position;
 
-    let gold_price: i64 = 2000_00000000;
-    let collateral_value =(user_position.collateral_amount as u128)*(gold_price as u128);
-    let liquidation_threshold=8000;
+    let gold_price: i64 = 5_000000;
+    let collateral_value = (user_position.collateral_amount as u128)
+        .checked_mul(gold_price as u128)
+        .unwrap()
+        .checked_div(1000000000) 
+        .unwrap();    
+    let liquidation_threshold=1000;
 
     let health_factor = (collateral_value * liquidation_threshold / 10000) / (user_position.borrow_amount as u128);
 
@@ -20,12 +24,20 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
         authority: ctx.accounts.liquidator.to_account_info(),
     };
 
-    token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_repay), repay_amount)?;
+    token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(),
+             cpi_repay), repay_amount)?;
 
     let gold_to_transfer = (repay_amount as u128 * 11000 / 10000) / (gold_price as u128);
 
 
-    let seeds = &[b"vault".as_ref(), &[ctx.bumps.vault_authority]];
+    let bump = ctx.bumps.vault_authority; 
+    let market_key = ctx.accounts.market.key();
+
+    let seeds = &[
+        b"vault".as_ref(),
+        market_key.as_ref(),
+        &[bump], 
+    ];
     let signer = &[&seeds[..]];
 
     let cpi_reward = Transfer {
@@ -35,8 +47,12 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
     };
     
     token::transfer(
-        CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), cpi_reward, signer),
-        gold_to_transfer as u64
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_reward,
+            signer,
+        ),
+        gold_to_transfer as u64,
     )?;
 
     user_position.borrow_amount -= repay_amount;

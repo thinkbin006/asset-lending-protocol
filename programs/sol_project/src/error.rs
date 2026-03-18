@@ -19,4 +19,7 @@ pub enum LendingError {
     
     #[msg("Math overflow occurred.")]
     MathOverflow,
+
+    #[msg("Active debt remaining for the account.")]
+    ActiveDebtRemaining,
 }

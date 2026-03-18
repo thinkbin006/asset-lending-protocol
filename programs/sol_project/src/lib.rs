@@ -69,6 +69,10 @@ pub mod sol_project {
         instructions::liquidate::liquidation_handler(ctx, repay_amount)
     }
 
+    pub fn withdrawl_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
+        instructions::withdrawl_collateral::withdrawl_handler(ctx, amount)
+    }
+
 }
 
 
