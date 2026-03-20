@@ -27,6 +27,7 @@ pub struct UserPosition {
     pub collateral_amount: u64,
     pub borrow_amount: u64,
     pub health_factor: u64,
+    pub last_update_ts: i64,
 }
 
 impl UserPosition {

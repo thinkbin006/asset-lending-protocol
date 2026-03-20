@@ -73,6 +73,11 @@ pub mod sol_project {
         instructions::withdrawl_collateral::withdrawl_handler(ctx, amount)
     }
 
+    pub fn repay_cash(ctx: Context<RepayCash>, amount: u64) -> Result<()> {
+        instructions::repay_cash::repay_handler(ctx, amount)
+    }
+
+    
 }
 
 

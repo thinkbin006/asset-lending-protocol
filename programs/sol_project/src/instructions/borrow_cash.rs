@@ -1,32 +1,37 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
+use pyth_sdk_solana::load_price_feed_from_account_info;
+use crate::instructions::accrue_interest;
 use crate::state::*;
 use crate::error::LendingError;
+use crate::pyth_price_handler::get_pyth_price;
 
 pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
     let market = &ctx.accounts.market.key();
 
     
-    let gold_price: u64 = 2000_00000000;
 
+    let interest = accrue_interest(user_position)?;
+    user_position.borrow_amount+= interest;
+
+    user_position.last_update_ts = Clock::get()?.unix_timestamp;
+
+    let gold_price = get_pyth_price(&ctx.accounts.pyth_gold_price_feed)?;
     let collateral_value = (user_position.collateral_amount as u128)
-                            .checked_mul(gold_price as u128)
-                            .unwrap();
-
-    let ltv_ratio = 7500;
-    let max_borrow = collateral_value
-                    .checked_mul(ltv_ratio)
-                    .unwrap()
-                    .checked_div(10000)
-                    .unwrap();
+        .checked_mul(gold_price as u128)
+        .unwrap()
+        .checked_div(10u128.pow(9))
+        .unwrap();    
     
+    let max_borrow = (collateral_value * 80) / 100;
+
     let new_total_debt = (user_position.borrow_amount as u128)
                         .checked_add(amount as u128)
                         .unwrap();
     
     require!(
-        new_total_debt <= max_borrow,
+        new_total_debt <= max_borrow.into(),
         LendingError::InsufficientCollateral
     );
 
@@ -68,6 +73,10 @@ pub struct BorrowCash<'info> {
         bump
     )]
     pub vault_authority: AccountInfo<'info>,
+
+    /// CHECK: This is the Pyth Price Feed account for Gold
+    pub pyth_gold_price_feed: AccountInfo<'info>,
+
     #[account(mut, has_one = owner)]
     pub user_position: Account<'info, UserPosition>,
     #[account(mut)]

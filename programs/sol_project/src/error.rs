@@ -22,4 +22,7 @@ pub enum LendingError {
 
     #[msg("Active debt remaining for the account.")]
     ActiveDebtRemaining,
+
+    #[msg("No debt to liquidate!")]
+    PositionNotLiquidatable,
 }

@@ -15,6 +15,7 @@ describe("gold_lending_protocol", () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.SolProject as Program<SolProject>;
+  const GOLD_PRICE_FEED = new anchor.web3.PublicKey("65mS8Z3Y7uSrs9SEmS8Z3Y7uSrs9SEmS8Z3Y7uSrs9SE");
 
   let goldMint: anchor.web3.PublicKey;
   let aliceGoldAccount: anchor.web3.PublicKey;
@@ -166,7 +167,7 @@ describe("gold_lending_protocol", () => {
             vaultAuthority: vaultAuthority,
             vaultCashAccount: vaultCashAccount,
             userCashAccount: aliceCashAccount,
-            userPosition: userPosition.publicKey, 
+            pythGoldPriceFeed: GOLD_PRICE_FEED,
             owner: admin.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -223,6 +224,7 @@ describe("gold_lending_protocol", () => {
             liquidatorGoldAccount: bobGoldAccount.address,
             vaultCashAccount: vaultCashAccount,
             vaultGoldAccount: vaultGoldAccount,
+            pythGoldPriceFeed: GOLD_PRICE_FEED,
             vaultAuthority: vaultAuthority,
             tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -260,6 +262,29 @@ describe("gold_lending_protocol", () => {
     expect(positionAfter.collateralAmount.toNumber()).to.equal(4999999890);
     
     console.log("Withdrawal successful! Alice reclaimed 5g of Gold.");
+  });
+
+  it("Alice repays her debt", async () => {
+
+    const repayAmount = new anchor.BN(500 * 10 ** 6); 
+
+    
+    await program.methods
+        .repayCash(repayAmount)
+        .accounts({
+            userPosition: userPosition.publicKey,
+            market: market.publicKey,
+            vaultCashAccount: vaultCashAccount,
+            userCashAccount: aliceCashAccount,  
+            owner: admin.publicKey,             
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+    const position = await program.account.userPosition.fetch(userPosition.publicKey);
+    console.log("Remaining Debt:", position.borrowAmount.toNumber());
+    
+    expect(position.borrowAmount.toNumber()).to.equal(0);
   });
 });
 

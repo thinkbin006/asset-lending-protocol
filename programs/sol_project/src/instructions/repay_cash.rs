@@ -1,22 +1,18 @@
-#[derive(Accounts)]
-pub struct RepayCash<'info> {
-    #[account(mut, has_one = owner)]
-    pub user_position: Account<'info, UserPosition>,
-    pub market: Account<'info, Market>,
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use crate::state::*;
+use crate::accrued_interest::*;
 
-    #[account(mut)]
-    pub vault_cash_account: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub user_cash_account: Account<'info, TokenAccount>,
-
-    pub owner: Signer<'info>,
-    pub token_program: Program<'info, Token>,
-}
-
-pub fn handler(ctx: Context<RepayCash>, amount: u64) -> Result<()> {
+pub fn repay_handler(ctx: Context<RepayCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
 
-    if amount >= user_position.borrow_amount {
+    let interest = accrue_interest(user_position)?;
+    user_position.borrow_amount += interest;
+
+    user_position.borrow_amount = user_position.borrow_amount.saturating_sub(amount);
+    user_position.last_update_ts = Clock::get()?.unix_timestamp;
+
+    if amount >= user_position.borrow_amount{
         user_position.borrow_amount = 0;
     } else {
         user_position.borrow_amount -= amount;
@@ -33,4 +29,19 @@ pub fn handler(ctx: Context<RepayCash>, amount: u64) -> Result<()> {
         amount,
     )?;
     Ok(())
+}
+
+#[derive(Accounts)]
+pub struct RepayCash<'info> {
+    #[account(mut, has_one = owner)]
+    pub user_position: Account<'info, UserPosition>,
+    pub market: Account<'info, Market>,
+
+    #[account(mut)]
+    pub vault_cash_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub user_cash_account: Account<'info, TokenAccount>,
+
+    pub owner: Signer<'info>,
+    pub token_program: Program<'info, Token>,
 }

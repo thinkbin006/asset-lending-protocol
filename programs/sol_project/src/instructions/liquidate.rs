@@ -2,18 +2,30 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 use crate::error::LendingError;
+use crate::pyth_price_handler::*;
+use crate::accrued_interest::*;
 
 pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
     let user_position= &mut ctx.accounts.user_position;
 
-    let gold_price: i64 = 5_000000;
-    let collateral_value = (user_position.collateral_amount as u128)
-        .checked_mul(gold_price as u128)
-        .unwrap()
-        .checked_div(1000000000) 
-        .unwrap();    
-    let liquidation_threshold=1000;
 
+    let interest = accrue_interest(user_position)?;
+    user_position.borrow_amount += interest;
+    user_position.last_update_ts = Clock::get()?.unix_timestamp;
+
+
+    let gold_price = get_pyth_price(&ctx.accounts.pyth_gold_price_feed)?;
+
+    let collateral_value = (user_position.collateral_amount as u128)
+        .checked_mul(gold_price as u128).unwrap()
+        .checked_div(10u128.pow(9)).unwrap();    
+
+    let liquidation_threshold = (collateral_value * 80) / 100;
+
+    require!(
+        (user_position.borrow_amount as u128) > liquidation_threshold,
+        LendingError::PositionNotLiquidatable
+    );
     let health_factor = (collateral_value * liquidation_threshold / 10000) / (user_position.borrow_amount as u128);
 
     require!(health_factor < 1, LendingError::NotLiquidatable);
@@ -72,6 +84,8 @@ pub struct Liquidate<'info> {
         bump
     )]
     pub vault_authority: AccountInfo<'info>,
+    /// CHECK: We verify this is the official Pyth Gold price feed in our logic
+    pub pyth_gold_price_feed: AccountInfo<'info>,
     #[account(mut)]
     pub user_position: Account<'info, UserPosition>,
     #[account(mut)]
