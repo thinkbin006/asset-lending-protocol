@@ -6,11 +6,7 @@ use crate::accrued_interest::*;
 pub fn repay_handler(ctx: Context<RepayCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
 
-    let interest = accrue_interest(user_position)?;
-    user_position.borrow_amount += interest;
-
-    user_position.borrow_amount = user_position.borrow_amount.saturating_sub(amount);
-    user_position.last_update_ts = Clock::get()?.unix_timestamp;
+    sync_interest(user_position)?;
 
     if amount >= user_position.borrow_amount{
         user_position.borrow_amount = 0;

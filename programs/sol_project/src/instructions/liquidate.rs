@@ -9,9 +9,7 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
     let user_position= &mut ctx.accounts.user_position;
 
 
-    let interest = accrue_interest(user_position)?;
-    user_position.borrow_amount += interest;
-    user_position.last_update_ts = Clock::get()?.unix_timestamp;
+    sync_interest(user_position)?;
 
 
     let gold_price = get_pyth_price(&ctx.accounts.pyth_gold_price_feed)?;
@@ -26,9 +24,6 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
         (user_position.borrow_amount as u128) > liquidation_threshold,
         LendingError::PositionNotLiquidatable
     );
-    let health_factor = (collateral_value * liquidation_threshold / 10000) / (user_position.borrow_amount as u128);
-
-    require!(health_factor < 1, LendingError::NotLiquidatable);
 
     let cpi_repay = Transfer {
         from: ctx.accounts.liquidator_cash_account.to_account_info(),
@@ -39,7 +34,8 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
     token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(),
              cpi_repay), repay_amount)?;
 
-    let gold_to_transfer = (repay_amount as u128 * 11000 / 10000) / (gold_price as u128);
+    let gold_amount = (repay_amount as u128 * 11000 / 10000) / (gold_price as u128);
+    let gold_to_transfer = (gold_amount as u64).min(user_position.collateral_amount);
 
 
     let bump = ctx.bumps.vault_authority; 

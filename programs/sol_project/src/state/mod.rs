@@ -5,6 +5,7 @@ pub struct Market {
     pub admin: Pubkey,
     pub total_collateral_gold: u64,
     pub total_borrowed_cash: u64,
+    pub borrow_cap: u128,
 
     // financial parameters
 
@@ -32,4 +33,15 @@ pub struct UserPosition {
 
 impl UserPosition {
     pub const LEN: usize = 96;
+}
+
+
+#[account]
+pub struct AssetConfig {
+    pub mint: Pubkey,            // The Token Mint
+    pub price_feed: Pubkey,      // The Pyth Price Feed for this asset
+    pub ltv: u64,                
+    pub liquidation_threshold: u64, 
+    pub liquidation_bonus: u64,  
+    pub decimals: u8,            // Decimals of the collateral token
 }
