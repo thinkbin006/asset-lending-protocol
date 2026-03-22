@@ -25,6 +25,7 @@ impl Market {
 pub struct UserPosition {
     pub owner: Pubkey,
     pub market: Pubkey,
+    pub collateral_mint: u64,
     pub collateral_amount: u64,
     pub borrow_amount: u64,
     pub health_factor: u64,
@@ -38,7 +39,7 @@ impl UserPosition {
 
 #[account]
 pub struct AssetConfig {
-    pub mint: Pubkey,            // The Token Mint
+    pub asset_mint: Pubkey,            // The Token Mint
     pub price_feed: Pubkey,      // The Pyth Price Feed for this asset
     pub ltv: u64,                
     pub liquidation_threshold: u64, 
