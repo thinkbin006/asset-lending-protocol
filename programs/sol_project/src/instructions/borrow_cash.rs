@@ -31,6 +31,17 @@ pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
 
     user_position.borrow_amount += amount;
 
+    let new_total_borrowed = ctx.accounts.market.total_borrowed_cash
+    .checked_add(amount)
+    .ok_or(LendingError::MathOverflow)?;
+
+    require!(
+        new_total_borrowed <= ctx.accounts.market.max_borrow_cap,
+        LendingError::GlobalBorrowCapReached
+    );
+    
+    ctx.accounts.market.total_borrowed_cash = new_total_borrowed;
+    
     let cpi_accounts = Transfer {
         from: ctx.accounts.vault_cash_account.to_account_info(),
         to: ctx.accounts.user_cash_account.to_account_info(),
@@ -69,7 +80,7 @@ pub struct BorrowCash<'info> {
     )]
     pub vault_authority: AccountInfo<'info>,
 
-    /// CHECK: This is the Pyth Price Feed account for Gold
+    /// CHECK: This is the Pyth Price Feed account for Asset
     pub pyth_price_feed: AccountInfo<'info>,
 
     #[account(mut, has_one = owner)]

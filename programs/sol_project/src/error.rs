@@ -25,4 +25,13 @@ pub enum LendingError {
 
     #[msg("No debt to liquidate!")]
     PositionNotLiquidatable,
+
+    #[msg("The provided asset config does not match the user's collateral mint.")]
+    InvalidAsset,
+    
+    #[msg("Withdrawal would leave the position under-collateralized.")]
+    WithdrawalWouldTriggerLiquidation,
+    
+    #[msg("The global borrow cap for the protocol has been reached.")]
+    GlobalBorrowCapReached,
 }

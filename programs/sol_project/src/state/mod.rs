@@ -5,7 +5,7 @@ pub struct Market {
     pub admin: Pubkey,
     pub total_collateral_gold: u64,
     pub total_borrowed_cash: u64,
-    pub borrow_cap: u128,
+    pub max_borrow_cap: u64,
 
     // financial parameters
 
@@ -25,7 +25,7 @@ impl Market {
 pub struct UserPosition {
     pub owner: Pubkey,
     pub market: Pubkey,
-    pub collateral_mint: u64,
+    pub collateral_mint: Pubkey,
     pub collateral_amount: u64,
     pub borrow_amount: u64,
     pub health_factor: u64,
