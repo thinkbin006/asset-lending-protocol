@@ -6,19 +6,20 @@ use crate::pyth_price_handler::*;
 use crate::accrued_interest::*;
 
 pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
+    let asset_config = &ctx.accounts.asset_config;
     let user_position= &mut ctx.accounts.user_position;
 
 
     sync_interest(user_position)?;
 
 
-    let gold_price = get_pyth_price(&ctx.accounts.pyth_gold_price_feed)?;
+    let asset_price = get_pyth_price(&ctx.accounts.pyth_price_feed)?;
 
     let collateral_value = (user_position.collateral_amount as u128)
-        .checked_mul(gold_price as u128).unwrap()
-        .checked_div(10u128.pow(9)).unwrap();    
+        .checked_mul(asset_price as u128).unwrap()
+        .checked_div(10u128.pow(asset_config.decimals as u32)).unwrap();    
 
-    let liquidation_threshold = (collateral_value * 80) / 100;
+    let liquidation_threshold = (collateral_value * asset_config.liquidation_threshold as u128) / 10000;
 
     require!(
         (user_position.borrow_amount as u128) > liquidation_threshold,
@@ -34,8 +35,11 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
     token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(),
              cpi_repay), repay_amount)?;
 
-    let gold_amount = (repay_amount as u128 * 11000 / 10000) / (gold_price as u128);
-    let gold_to_transfer = (gold_amount as u64).min(user_position.collateral_amount);
+    let bonus_multiplier = 10000 + asset_config.liquidation_bonus;
+    let asset_to_seize_value = (repay_amount as u128 * bonus_multiplier as u128) / 10000;
+    
+    let asset_amount = (asset_to_seize_value * 10u128.pow(asset_config.decimals as u32)) / (asset_price as u128);
+    let asset_to_transfer = (asset_amount as u64).min(user_position.collateral_amount);
 
 
     let bump = ctx.bumps.vault_authority; 
@@ -60,11 +64,11 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
             cpi_reward,
             signer,
         ),
-        gold_to_transfer as u64,
+        asset_to_transfer as u64,
     )?;
 
     user_position.borrow_amount -= repay_amount;
-    user_position.collateral_amount -= gold_to_transfer as u64;
+    user_position.collateral_amount -= asset_to_transfer as u64;
 
     Ok(())
 }
@@ -72,6 +76,7 @@ pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result
 
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
+    pub asset_config: Account<'info, AssetConfig>,
     pub market: Account<'info, Market>,
     /// CHECK: This is a PDA used as a signing authority for the vault. 
     /// Its safety is guaranteed by the seeds and bump constraints.
@@ -81,7 +86,7 @@ pub struct Liquidate<'info> {
     )]
     pub vault_authority: AccountInfo<'info>,
     /// CHECK: We verify this is the official Pyth Gold price feed in our logic
-    pub pyth_gold_price_feed: AccountInfo<'info>,
+    pub pyth_price_feed: AccountInfo<'info>,
     #[account(mut)]
     pub user_position: Account<'info, UserPosition>,
     #[account(mut)]

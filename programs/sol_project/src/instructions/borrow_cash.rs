@@ -9,17 +9,16 @@ use crate::pyth_price_handler::get_pyth_price;
 pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
     let market = &ctx.accounts.market.key();
+    let asset_config = &ctx.accounts.asset_config;
 
     sync_interest(user_position)?;
 
-    let gold_price = get_pyth_price(&ctx.accounts.pyth_gold_price_feed)?;
+    let asset_price = get_pyth_price(&ctx.accounts.pyth_price_feed)?;
     let collateral_value = (user_position.collateral_amount as u128)
-        .checked_mul(gold_price as u128)
-        .unwrap()
-        .checked_div(10u128.pow(9))
-        .unwrap();    
+        .checked_mul(asset_price as u128).unwrap()
+        .checked_div(10u128.pow(asset_config.decimals as u32)).unwrap();    
     
-    let max_borrow = (collateral_value * 80) / 100;
+    let max_borrow = (collateral_value * asset_config.ltv as u128) / 10000;
 
     let new_total_debt = (user_position.borrow_amount as u128)
                         .checked_add(amount as u128)
@@ -59,6 +58,7 @@ pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct BorrowCash<'info> {
+    pub asset_config: Account<'info, AssetConfig>,
     #[account(mut)]
     pub market: Account<'info, Market>,
     /// CHECK: This is a PDA used as a signing authority for the vault. 
@@ -70,7 +70,7 @@ pub struct BorrowCash<'info> {
     pub vault_authority: AccountInfo<'info>,
 
     /// CHECK: This is the Pyth Price Feed account for Gold
-    pub pyth_gold_price_feed: AccountInfo<'info>,
+    pub pyth_price_feed: AccountInfo<'info>,
 
     #[account(mut, has_one = owner)]
     pub user_position: Account<'info, UserPosition>,
