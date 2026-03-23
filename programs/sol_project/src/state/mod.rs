@@ -3,6 +3,9 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct Market {
     pub admin: Pubkey,
+    pub treasury_vault: Pubkey,
+    pub reserve_factor: u64,
+    pub accrued_treasury_fees: u64,
     pub total_collateral_gold: u64,
     pub total_borrowed_cash: u64,
     pub max_borrow_cap: u64,

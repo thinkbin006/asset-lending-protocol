@@ -8,9 +8,8 @@ use crate::pyth_price_handler::get_pyth_price;
 
 pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
-    let market = &ctx.accounts.market;
+    let market = &mut ctx.accounts.market;
     let asset_config = &ctx.accounts.asset_config;
-    let market_key= &ctx.accounts.market.key();
 
     sync_interest(user_position, market)?;
 
@@ -42,7 +41,8 @@ pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
     );
     
     ctx.accounts.market.total_borrowed_cash = new_total_borrowed;
-    
+    let market_key= &ctx.accounts.market.key();
+
     let cpi_accounts = Transfer {
         from: ctx.accounts.vault_cash_account.to_account_info(),
         to: ctx.accounts.user_cash_account.to_account_info(),
