@@ -6,13 +6,15 @@ pub struct Market {
     pub total_collateral_gold: u64,
     pub total_borrowed_cash: u64,
     pub max_borrow_cap: u64,
+    pub total_deposited: u64,
+
 
     // financial parameters
 
     pub base_rate: u64,
     pub optimal_utilization: u64,
-    pub slope_1: u64,
-    pub slope_2: u64,
+    pub optimal_rate: u64,
+    pub max_rate: u64,
 
     pub last_updated_slot: u64,
 }

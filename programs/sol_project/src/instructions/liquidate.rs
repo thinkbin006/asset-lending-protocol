@@ -8,9 +8,9 @@ use crate::accrued_interest::*;
 pub fn liquidation_handler(ctx: Context<Liquidate>, repay_amount: u64) -> Result<()> {
     let asset_config = &ctx.accounts.asset_config;
     let user_position= &mut ctx.accounts.user_position;
+    let market = &ctx.accounts.market;
 
-
-    sync_interest(user_position)?;
+    sync_interest(user_position, market)?;
 
 
     let asset_price = get_pyth_price(&ctx.accounts.pyth_price_feed)?;

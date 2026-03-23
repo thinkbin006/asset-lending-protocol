@@ -8,10 +8,11 @@ use crate::pyth_price_handler::get_pyth_price;
 
 pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
-    let market = &ctx.accounts.market.key();
+    let market = &ctx.accounts.market;
     let asset_config = &ctx.accounts.asset_config;
+    let market_key= &ctx.accounts.market.key();
 
-    sync_interest(user_position)?;
+    sync_interest(user_position, market)?;
 
     let asset_price = get_pyth_price(&ctx.accounts.pyth_price_feed)?;
     let collateral_value = (user_position.collateral_amount as u128)
@@ -50,7 +51,7 @@ pub fn borrow_handler(ctx: Context<BorrowCash>, amount: u64) -> Result<()> {
 
     let seeds=&[
         b"vault".as_ref(),
-        market.as_ref(),
+        market_key.as_ref(),
         &[ctx.bumps.vault_authority],
     ];
 

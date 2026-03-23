@@ -29,13 +29,14 @@ pub struct WithdrawCollateral<'info> {
 pub fn withdrawl_handler(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
     let asset_config = &ctx.accounts.asset_config;
+    let market= &ctx.accounts.market;
 
     require!(
         user_position.collateral_mint == asset_config.asset_mint,
         LendingError::InvalidAsset
     );
 
-    sync_interest(user_position)?;
+    sync_interest(user_position, market)?;
 
     require!(
         user_position.borrow_amount == 0,
