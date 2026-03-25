@@ -94,6 +94,8 @@ pub struct DepositCollateral<'info> {
     pub user_position: Account<'info, UserPosition>,
 
     #[account(mut)]
+    pub market: Account<'info, Market>,
+    #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,

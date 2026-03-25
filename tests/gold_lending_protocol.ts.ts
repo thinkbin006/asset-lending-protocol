@@ -304,7 +304,6 @@ describe("sol_project_v2", () => {
   const program = anchor.workspace.SolProject as Program<SolProject>;
   const admin = provider.wallet;
 
-  // Variables for our ecosystem
   let marketPDA: anchor.web3.PublicKey;
   let goldMint: anchor.web3.PublicKey;
   let usdcMint: anchor.web3.PublicKey;
@@ -313,27 +312,25 @@ describe("sol_project_v2", () => {
 
   
   before(async () => {
-    // 1. Setup Mints
-
     
-
+    
     usdcMint = await createMint(provider.connection, (admin as any).payer, admin.publicKey, null, 6);
     goldMint = await createMint(provider.connection, (admin as any).payer, admin.publicKey, null, 9);
     
-    // 2. Setup Market PDA
+    
     [marketPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("market"), admin.publicKey.toBuffer()],
       program.programId
     );
 
-    // 3. Initialize Market (Admin Step)
+    
     const tx = await program.methods.initializeMarket(
-    new anchor.BN(200),   // 2% Base Rate
-    new anchor.BN(8000),  // 80% Kink
-    new anchor.BN(600),   // 6% Optimal Rate
-    new anchor.BN(5000),  // 50% Max Rate (The Jump)
-    new anchor.BN(1000),  // 10% Reserve Factor (Your Cut)
-    admin.publicKey       // Treasury Vault (For now, just your wallet)
+    new anchor.BN(200),   
+    new anchor.BN(8000),  
+    new anchor.BN(600),   
+    new anchor.BN(5000),  
+    new anchor.BN(1000),  
+    admin.publicKey       
   ).accounts({
     admin: admin.publicKey,
     
@@ -343,10 +340,9 @@ describe("sol_project_v2", () => {
 
   const marketAccount = await program.account.market.fetch(marketPDA);
   console.log("Market successfully initialized for admin:", marketAccount.admin.toBase58());
-    // 4. Create Mock Pyth Account
+    
     mockPythGold = anchor.web3.Keypair.generate();
-    // (Note: In a real test, you'd write the Pyth buffer here. 
-    // For now, our program treats empty accounts as $2000 mock price)
+    
   });
 
   it("Adds Gold as a supported asset", async () => {
@@ -359,9 +355,9 @@ describe("sol_project_v2", () => {
     await program.methods.addAsset(
       goldMint,
       mockPythGold.publicKey,
-      new anchor.BN(8000), // 80% LTV
-      new anchor.BN(1000), // 10% Liquidation Bonus
-      9                    // Decimals
+      new anchor.BN(8000), 
+      new anchor.BN(1000), 
+      9                    
     ).accounts({
       market: marketPDA, 
       admin: admin.publicKey,
@@ -372,30 +368,19 @@ describe("sol_project_v2", () => {
   });
 
   it("Accrues interest accurately over simulated time", async () => {
-    // 1. Alice setup
+    
     const alice = anchor.web3.Keypair.generate();
     // Airdrop SOL for gas
     await provider.connection.confirmTransaction(
       await provider.connection.requestAirdrop(alice.publicKey, 1e9)
     );
 
-    // 2. Initial Deposit & Borrow
-    // [Call your borrow_cash method here passing the goldAssetConfig]
-    // ... logic to call program.methods.borrowCash(...) ...
-
-    // 3. Simulated TIME WARP
-    // We simulate 1 year passing
+    
     const currentClock = await provider.connection.getSlot();
-    // In actual Bankrun tests, you'd use context.setClock()
-    // In standard Anchor, we can't easily warp the system clock 
-    // without a custom local validator startup.
     
     console.log("Time warp simulation ready...");
   });
 
   it("Triggers liquidation when price drops", async () => {
-    // 1. Change the Mock Pyth Price (Simulate Gold Crash)
-    // 2. Bob (Liquidator) calls liquidationHandler
-    // 3. Verify Bob got the 10% bonus and Alice's debt decreased
   });
 });

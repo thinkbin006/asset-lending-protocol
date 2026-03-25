@@ -39,7 +39,7 @@ pub struct UserPosition {
 }
 
 impl UserPosition {
-    pub const LEN: usize = 128;
+    pub const LEN: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8;
 }
 
 
@@ -55,5 +55,5 @@ pub struct AssetConfig {
 }
 
 impl AssetConfig {
-    pub const  LEN: usize = 124;
+    pub const  LEN: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 7;
 }

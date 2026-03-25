@@ -41,6 +41,11 @@ pub fn market_handler(
     market.total_deposited = 0;
     market.accrued_treasury_fees = 0;
 
+    market.total_collateral_gold = 0;
+    market.max_borrow_cap = 1_000_000_000; 
+    market.last_updated_slot = Clock::get()?.slot;
+    market.bump = ctx.bumps.market;
+
     msg!("Market Initialized by Admin: {:?}", market.admin);
     Ok(())
 }
