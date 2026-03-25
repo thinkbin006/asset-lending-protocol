@@ -7,8 +7,8 @@ pub struct AddAsset<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    #[account(init, payer: admin,
-        space= 8 + 32 + 32 +8 +8 +1,
+    #[account(init, payer = admin,
+        space= AssetConfig::LEN+8,
         seeds = [b"asset_config", market.key().as_ref(), asset_mint.as_ref()],
         bump)]
         pub asset_config: Account<'info, AssetConfig>,
@@ -20,7 +20,7 @@ pub struct AddAsset<'info> {
 
 }
 
-pub fn handler(
+pub fn asset_handler(
     ctx: Context<AddAsset>,
     _asset_mint: Pubkey,
     price: Pubkey,
@@ -31,9 +31,10 @@ pub fn handler(
     let asset_config = &mut ctx.accounts.asset_config;
     asset_config.market= ctx.accounts.market.key();
     asset_config.asset_mint = _asset_mint;
-    asset_config.price_feed = price_feed;
+    asset_config.price_feed = price;
     asset_config.ltv= ltv;
     asset_config.liquidation_bonus = bonus;
+    asset_config.liquidation_threshold = 9000;
     asset_config.decimals = decimals;
 
     msg!("Asset Added: {:?}", _asset_mint);

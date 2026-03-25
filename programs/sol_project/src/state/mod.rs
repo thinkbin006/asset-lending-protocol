@@ -10,6 +10,7 @@ pub struct Market {
     pub total_borrowed_cash: u64,
     pub max_borrow_cap: u64,
     pub total_deposited: u64,
+    pub bump: u8,
 
 
     // financial parameters
@@ -23,7 +24,7 @@ pub struct Market {
 }
 
 impl Market {
-    pub const LEN: usize =96;
+    pub const LEN: usize = 8 + 32 + 32 + (10 * 8) + 1 + 8;
 }
 
 #[account]
@@ -38,7 +39,7 @@ pub struct UserPosition {
 }
 
 impl UserPosition {
-    pub const LEN: usize = 96;
+    pub const LEN: usize = 128;
 }
 
 
@@ -46,8 +47,13 @@ impl UserPosition {
 pub struct AssetConfig {
     pub asset_mint: Pubkey,            // The Token Mint
     pub price_feed: Pubkey,      // The Pyth Price Feed for this asset
+    pub market: Pubkey,
     pub ltv: u64,                
     pub liquidation_threshold: u64, 
     pub liquidation_bonus: u64,  
     pub decimals: u8,            // Decimals of the collateral token
+}
+
+impl AssetConfig {
+    pub const  LEN: usize = 124;
 }

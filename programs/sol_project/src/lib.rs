@@ -18,24 +18,28 @@ declare_id!("DBi9Wids5DqV4QJtRyz3ib3YYNMJZUwCw82Ybh1dhxed");
 pub mod sol_project {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+    pub fn initialize_market(
+        ctx: Context<InitializeMarket>, 
+        base_rate: u64,
+        optimal_util: u64,
+        optimal_rate: u64,
+        max_rate: u64,
+        reserve_factor: u64,
+        treasury_vault: Pubkey,
+    ) -> Result<()> {
+        instructions::market_initializer::market_handler(
+            ctx, 
+            base_rate, 
+            optimal_util, 
+            optimal_rate, 
+            max_rate, 
+            reserve_factor, 
+            treasury_vault
+        )
     }
 
-    pub fn initialize_market(
-        ctx: Context<InitializeMarket>,
-        base_rate: u64,
-        optimal_util: u64
-    ) -> Result<()> {
-        let market = &mut ctx.accounts.market;
-        market.admin = *ctx.accounts.admin.key;
-        market.base_rate = base_rate;
-        market.optimal_utilization = optimal_util;
-        market.total_collateral_gold = 0;
-        market.total_borrowed_cash = 0;
-
-        msg!("Market Initialized by Admin: {}", market.admin);
-        Ok(())
+    pub fn add_asset(ctx: Context<AddAsset>, _asset_mint: Pubkey, price: Pubkey, ltv: u64, bonus: u64, decimals: u8) -> Result<()> {
+        instructions::asset_handler(ctx, _asset_mint, price, ltv, bonus, decimals)
     }
 
     pub fn deposit_collateral(ctx : Context<DepositCollateral>, amount: u64) -> Result<()> {
@@ -78,17 +82,6 @@ pub mod sol_project {
     }
 
     
-}
-
-
-
-#[derive(Accounts)]
-pub struct InitializeMarket<'info> {
-    #[account(init, payer=admin, space = 8+ Market::LEN)]
-    pub market: Account<'info, Market>,
-    #[account(mut)]
-    pub admin: Signer<'info>,
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
