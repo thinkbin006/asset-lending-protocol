@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 100, "column": 0}, "map": {"version":3,"sources":["file:///home/thinkbin/sol_project/frontend/components/SolanaProvider.tsx"],"sourcesContent":["\"use client\";\n\nimport { useMemo } from 'react';\nimport { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';\nimport { WalletModalProvider } from '@solana/wallet-adapter-react-ui';\n\nexport default function SolanaProvider({ children }: { children: React.ReactNode }) {\n    // Localhost RPC\n    const endpoint = useMemo(() => \"http://127.0.0.1:8899\", []);\n    const wallets = useMemo(() => [], []); \n\n    return (\n        <ConnectionProvider endpoint={endpoint}>\n            <WalletProvider wallets={wallets} autoConnect>\n                <WalletModalProvider>\n                    {children}\n                </WalletModalProvider>\n            </WalletProvider>\n        </ConnectionProvider>\n    );\n}"],"names":["SolanaProvider","children","endpoint","wallets","autoConnect"],"mappings":";;;;;AAEA;AACA;AAAA;AACA;AAJA;;;;;AAMe,SAASA,eAAe,EAAEC,QAAQ,EAAiC;IAC9E,gBAAgB;IAChB,MAAMC,WAAW,IAAA,4NAAO,EAAC,IAAM,yBAAyB,EAAE;IAC1D,MAAMC,UAAU,IAAA,4NAAO,EAAC,IAAM,EAAE,EAAE,EAAE;IAEpC,qBACI,0PAAC,4NAAkB;QAACD,UAAUA;kBAC1B,cAAA,0PAAC,oNAAc;YAACC,SAASA;YAASC,WAAW;sBACzC,cAAA,0PAAC,oOAAmB;0BACfH;;;;;;;;;;;;;;;;AAKrB"}}]
+}
