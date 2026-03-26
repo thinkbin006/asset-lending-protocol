@@ -1,0 +1,692 @@
+{
+  "address": "DBi9Wids5DqV4QJtRyz3ib3YYNMJZUwCw82Ybh1dhxed",
+  "metadata": {
+    "name": "sol_project",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_asset",
+      "discriminator": [
+        81,
+        53,
+        134,
+        142,
+        243,
+        73,
+        42,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "asset_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "arg",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_asset_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "price",
+          "type": "pubkey"
+        },
+        {
+          "name": "ltv",
+          "type": "u64"
+        },
+        {
+          "name": "bonus",
+          "type": "u64"
+        },
+        {
+          "name": "decimals",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "borrow_cash",
+      "discriminator": [
+        67,
+        25,
+        221,
+        26,
+        16,
+        151,
+        195,
+        180
+      ],
+      "accounts": [
+        {
+          "name": "asset_config"
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault_authority",
+          "docs": [
+            "Its safety is guaranteed by the seeds and bump constraints."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pyth_price_feed"
+        },
+        {
+          "name": "user_position",
+          "writable": true
+        },
+        {
+          "name": "vault_cash_account",
+          "writable": true
+        },
+        {
+          "name": "user_cash_account",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "user_position"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_collateral",
+      "discriminator": [
+        156,
+        131,
+        142,
+        116,
+        146,
+        247,
+        162,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "user_position",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_market",
+      "discriminator": [
+        35,
+        35,
+        189,
+        193,
+        155,
+        48,
+        170,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "base_rate",
+          "type": "u64"
+        },
+        {
+          "name": "optimal_util",
+          "type": "u64"
+        },
+        {
+          "name": "optimal_rate",
+          "type": "u64"
+        },
+        {
+          "name": "max_rate",
+          "type": "u64"
+        },
+        {
+          "name": "reserve_factor",
+          "type": "u64"
+        },
+        {
+          "name": "treasury_vault",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "liquidate",
+      "discriminator": [
+        223,
+        179,
+        226,
+        125,
+        48,
+        46,
+        39,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "asset_config"
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault_authority",
+          "docs": [
+            "Its safety is guaranteed by the seeds and bump constraints."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pyth_price_feed"
+        },
+        {
+          "name": "user_position",
+          "writable": true
+        },
+        {
+          "name": "vault_cash_account",
+          "writable": true
+        },
+        {
+          "name": "vault_gold_account",
+          "writable": true
+        },
+        {
+          "name": "liquidator_cash_account",
+          "writable": true
+        },
+        {
+          "name": "liquidator_gold_account",
+          "writable": true
+        },
+        {
+          "name": "liquidator",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "repay_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "repay_cash",
+      "discriminator": [
+        44,
+        95,
+        5,
+        54,
+        180,
+        203,
+        70,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "user_position",
+          "writable": true
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault_cash_account",
+          "writable": true
+        },
+        {
+          "name": "user_cash_account",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "user_position"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdrawl_collateral",
+      "discriminator": [
+        110,
+        96,
+        186,
+        231,
+        23,
+        172,
+        103,
+        97
+      ],
+      "accounts": [
+        {
+          "name": "asset_config"
+        },
+        {
+          "name": "user_position",
+          "writable": true
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pyth_price_feed"
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "user_position"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AssetConfig",
+      "discriminator": [
+        57,
+        112,
+        247,
+        166,
+        247,
+        64,
+        140,
+        23
+      ]
+    },
+    {
+      "name": "Market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "UserPosition",
+      "discriminator": [
+        251,
+        248,
+        209,
+        245,
+        83,
+        234,
+        17,
+        27
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "CustomError",
+      "msg": "Custom error message"
+    }
+  ],
+  "types": [
+    {
+      "name": "AssetConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "ltv",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation_bonus",
+            "type": "u64"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Market",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "reserve_factor",
+            "type": "u64"
+          },
+          {
+            "name": "accrued_treasury_fees",
+            "type": "u64"
+          },
+          {
+            "name": "total_collateral_gold",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed_cash",
+            "type": "u64"
+          },
+          {
+            "name": "max_borrow_cap",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "base_rate",
+            "type": "u64"
+          },
+          {
+            "name": "optimal_utilization",
+            "type": "u64"
+          },
+          {
+            "name": "optimal_rate",
+            "type": "u64"
+          },
+          {
+            "name": "max_rate",
+            "type": "u64"
+          },
+          {
+            "name": "last_updated_slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_amount",
+            "type": "u64"
+          },
+          {
+            "name": "health_factor",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_ts",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "SEED",
+      "type": "string",
+      "value": "\"anchor\""
+    }
+  ]
+}
