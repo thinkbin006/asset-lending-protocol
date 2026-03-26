@@ -1,5 +1,6 @@
 "use client";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { HealthFactor } from "@/components/HealthFactor";
 
 export default function Home() {
   return (
@@ -11,6 +12,13 @@ export default function Home() {
       <div className="mt-10 p-10 border border-dashed border-gray-700 rounded-lg text-center">
         <p>Ready to rebuild the stats and deposit components!</p>
       </div>
+      <div className="max-w-md mx-auto mt-10">
+      <HealthFactor 
+        collateralValue={1000} 
+        borrowedAmount={750} 
+        ltv={0.8} 
+      />
+    </div>
     </main>
   );
 }
